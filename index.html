@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Remindly</title>
+  <meta name="description" content="Your minimal cross-device reminder & to-do manager" />
+  <meta name="theme-color" content="#0a0a0a" />
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet" />
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --surface: #141414;
+      --surface2: #1e1e1e;
+      --border: #2a2a2a;
+      --accent: #c8f55a;
+      --accent-dim: #9bbf3a;
+      --text: #f0f0f0;
+      --text-muted: #666;
+      --text-dim: #999;
+      --red: #ff5252;
+      --amber: #ffb347;
+      --radius: 14px;
+      --mono: 'DM Mono', monospace;
+      --display: 'Syne', sans-serif;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Layout ── */
+    #app {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 0 16px;
+    }
+
+    /* ── Header ── */
+    header {
+      padding: 28px 0 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .logo {
+      font-family: var(--display);
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      color: var(--text);
+    }
+    .logo span { color: var(--accent); }
+
+    .header-right { display: flex; align-items: center; gap: 10px; }
+
+    #sync-status {
+      font-size: 11px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    #sync-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--text-muted);
+      transition: background 0.3s;
+    }
+    #sync-dot.synced { background: var(--accent); }
+    #sync-dot.syncing { background: var(--amber); animation: pulse 1s infinite; }
+    #sync-dot.error { background: var(--red); }
+
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+    .btn-icon {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      width: 34px; height: 34px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+      transition: all 0.15s;
+    }
+    .btn-icon:hover { background: var(--surface2); color: var(--text); border-color: #3a3a3a; }
+
+    /* ── Setup Banner ── */
+    #setup-banner {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      margin-bottom: 20px;
+      display: none;
+    }
+    #setup-banner.show { display: block; }
+    #setup-banner h3 {
+      font-family: var(--display);
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: var(--accent);
+    }
+    #setup-banner p { font-size: 12px; color: var(--text-muted); margin-bottom: 12px; line-height: 1.6; }
+    #setup-banner a { color: var(--accent); text-decoration: none; }
+    #setup-banner a:hover { text-decoration: underline; }
+
+    .token-input-row { display: flex; gap: 8px; }
+    .token-input-row input {
+      flex: 1;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .token-input-row input:focus { border-color: var(--accent); }
+    .btn-save-token {
+      background: var(--accent);
+      color: #0a0a0a;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s;
+    }
+    .btn-save-token:hover { background: var(--accent-dim); }
+
+    /* ── Filter Tabs ── */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 4px;
+    }
+    .tab {
+      flex: 1;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-family: var(--mono);
+      font-size: 12px;
+      padding: 7px 8px;
+      border-radius: 7px;
+      cursor: pointer;
+      transition: all 0.15s;
+      text-align: center;
+    }
+    .tab.active {
+      background: var(--surface2);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    /* ── Add Task ── */
+    .add-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    #new-task-input {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      font-family: var(--mono);
+      font-size: 14px;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    #new-task-input::placeholder { color: var(--text-muted); }
+    #new-task-input:focus { border-color: var(--accent); }
+
+    .priority-pick {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .priority-pick label { font-size: 10px; color: var(--text-muted); text-align: center; }
+    #priority-select {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 12px;
+      padding: 6px 8px;
+      outline: none;
+      cursor: pointer;
+      width: 72px;
+    }
+
+    #add-btn {
+      background: var(--accent);
+      color: #0a0a0a;
+      border: none;
+      border-radius: var(--radius);
+      width: 46px;
+      font-size: 22px;
+      cursor: pointer;
+      font-weight: 700;
+      transition: all 0.15s;
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+    }
+    #add-btn:hover { background: var(--accent-dim); transform: scale(0.97); }
+
+    /* ── Stats Bar ── */
+    .stats-bar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+    .stat {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 14px;
+      flex: 1;
+      text-align: center;
+    }
+    .stat-num {
+      font-family: var(--display);
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--text);
+      line-height: 1;
+      margin-bottom: 3px;
+    }
+    .stat-num.accent { color: var(--accent); }
+    .stat-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; }
+
+    /* ── Task List ── */
+    #task-list { display: flex; flex-direction: column; gap: 8px; flex: 1; }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-muted);
+      display: none;
+    }
+    .empty-state.show { display: block; }
+    .empty-state .big { font-size: 36px; margin-bottom: 12px; }
+    .empty-state p { font-size: 13px; line-height: 1.7; }
+
+    /* ── Task Card ── */
+    .task-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 14px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      transition: all 0.2s;
+      animation: slideIn 0.2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .task-card:hover { border-color: #3a3a3a; background: #161616; }
+    .task-card.done { opacity: 0.45; }
+    .task-card.done .task-text { text-decoration: line-through; color: var(--text-muted); }
+
+    /* priority bar on left */
+    .task-card::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 3px;
+      border-radius: 14px 0 0 14px;
+    }
+    .task-card.p-high::before  { background: var(--red); }
+    .task-card.p-med::before   { background: var(--amber); }
+    .task-card.p-low::before   { background: var(--accent); }
+
+    .task-check {
+      width: 20px; height: 20px;
+      border: 1.5px solid var(--border);
+      border-radius: 6px;
+      cursor: pointer;
+      flex-shrink: 0;
+      margin-top: 1px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px;
+      transition: all 0.15s;
+      background: transparent;
+      color: transparent;
+    }
+    .task-check:hover { border-color: var(--accent); }
+    .task-card.done .task-check {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #0a0a0a;
+    }
+
+    .task-body { flex: 1; min-width: 0; }
+    .task-text {
+      font-size: 14px;
+      color: var(--text);
+      word-break: break-word;
+      margin-bottom: 4px;
+    }
+    .task-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .task-time { font-size: 11px; color: var(--text-muted); }
+    .task-category {
+      font-size: 10px;
+      padding: 2px 7px;
+      border-radius: 99px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .priority-badge {
+      font-size: 10px;
+      padding: 2px 7px;
+      border-radius: 99px;
+      font-weight: 500;
+    }
+    .pb-high { background: rgba(255,82,82,0.12); color: var(--red); }
+    .pb-med  { background: rgba(255,179,71,0.12); color: var(--amber); }
+    .pb-low  { background: rgba(200,245,90,0.12); color: var(--accent); }
+
+    .task-actions {
+      display: flex;
+      gap: 4px;
+      opacity: 0;
+      transition: opacity 0.15s;
+      flex-shrink: 0;
+    }
+    .task-card:hover .task-actions { opacity: 1; }
+
+    .act-btn {
+      width: 28px; height: 28px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 13px;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s;
+    }
+    .act-btn:hover { background: #2a2a2a; color: var(--text); }
+    .act-btn.del:hover { background: rgba(255,82,82,0.15); color: var(--red); border-color: rgba(255,82,82,0.3); }
+
+    /* ── Modal ── */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 16px;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 24px;
+      width: 100%;
+      max-width: 400px;
+      animation: modalIn 0.2s ease;
+    }
+    @keyframes modalIn {
+      from { opacity:0; transform: scale(0.96); }
+      to   { opacity:1; transform: scale(1); }
+    }
+    .modal h2 {
+      font-family: var(--display);
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 18px;
+      color: var(--text);
+    }
+    .modal-field { margin-bottom: 14px; }
+    .modal-field label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; display: block; margin-bottom: 6px; }
+    .modal-field input,
+    .modal-field select,
+    .modal-field textarea {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s;
+      resize: vertical;
+    }
+    .modal-field input:focus,
+    .modal-field select:focus,
+    .modal-field textarea:focus { border-color: var(--accent); }
+    .modal-field textarea { min-height: 80px; }
+
+    .modal-actions { display: flex; gap: 8px; margin-top: 20px; }
+    .btn-cancel {
+      flex: 1;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-muted);
+      font-family: var(--mono);
+      font-size: 13px;
+      padding: 10px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-cancel:hover { background: var(--surface2); color: var(--text); }
+    .btn-primary {
+      flex: 2;
+      background: var(--accent);
+      border: none;
+      border-radius: 8px;
+      color: #0a0a0a;
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 500;
+      padding: 10px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-primary:hover { background: var(--accent-dim); }
+
+    /* ── Settings Modal ── */
+    .settings-section {
+      margin-bottom: 20px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .settings-section:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+    .settings-section h3 { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; }
+
+    .gist-id-display {
+      font-size: 11px;
+      color: var(--accent);
+      background: var(--surface2);
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      word-break: break-all;
+      margin-top: 8px;
+    }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 18px;
+      font-size: 13px;
+      color: var(--text);
+      opacity: 0;
+      transition: all 0.25s;
+      pointer-events: none;
+      white-space: nowrap;
+      z-index: 200;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ── Footer ── */
+    footer {
+      padding: 20px 0;
+      text-align: center;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    /* ── Mobile tweaks ── */
+    @media (max-width: 480px) {
+      .stats-bar { gap: 6px; }
+      .stat-num { font-size: 18px; }
+      .task-card { padding: 10px 12px; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="app">
+  <header>
+    <div class="logo">remind<span>ly</span></div>
+    <div class="header-right">
+      <div id="sync-status">
+        <div id="sync-dot"></div>
+        <span id="sync-label">local</span>
+      </div>
+      <button class="btn-icon" id="settings-btn" title="Settings">⚙</button>
+    </div>
+  </header>
+
+  <!-- Setup Banner -->
+  <div id="setup-banner">
+    <h3>⚡ Connect GitHub Gist for sync</h3>
+    <p>
+      Create a <a href="https://github.com/settings/tokens/new?scopes=gist&description=Remindly" target="_blank">GitHub token</a> with <code>gist</code> scope, then paste it below.
+      Your tasks will sync across all devices.
+    </p>
+    <div class="token-input-row">
+      <input type="password" id="token-input" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" />
+      <button class="btn-save-token" onclick="saveToken()">Connect</button>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-bar">
+    <div class="stat">
+      <div class="stat-num" id="stat-total">0</div>
+      <div class="stat-label">Total</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num accent" id="stat-open">0</div>
+      <div class="stat-label">Open</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num" id="stat-done">0</div>
+      <div class="stat-label">Done</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num" id="stat-high">0</div>
+      <div class="stat-label">Urgent</div>
+    </div>
+  </div>
+
+  <!-- Filter Tabs -->
+  <div class="tabs">
+    <button class="tab active" data-filter="all">All</button>
+    <button class="tab" data-filter="open">Open</button>
+    <button class="tab" data-filter="done">Done</button>
+    <button class="tab" data-filter="high">Urgent</button>
+  </div>
+
+  <!-- Add Task -->
+  <div class="add-row">
+    <input type="text" id="new-task-input" placeholder="Add a task or reminder…" maxlength="200" />
+    <select id="priority-select">
+      <option value="low">🟢 Low</option>
+      <option value="med" selected>🟡 Med</option>
+      <option value="high">🔴 High</option>
+    </select>
+    <button id="add-btn" onclick="addTask()">+</button>
+  </div>
+
+  <!-- Task List -->
+  <div id="task-list"></div>
+  <div class="empty-state" id="empty-state">
+    <div class="big">✦</div>
+    <p>Nothing here yet.<br>Add a task above to get started.</p>
+  </div>
+
+  <footer>remindly · syncs via github gist</footer>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal">
+    <h2>Edit task</h2>
+    <div class="modal-field">
+      <label>Task</label>
+      <textarea id="edit-text" rows="3"></textarea>
+    </div>
+    <div class="modal-field">
+      <label>Category</label>
+      <input type="text" id="edit-category" placeholder="e.g. work, personal, health" />
+    </div>
+    <div class="modal-field">
+      <label>Priority</label>
+      <select id="edit-priority">
+        <option value="low">🟢 Low</option>
+        <option value="med">🟡 Medium</option>
+        <option value="high">🔴 High</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('edit-modal')">Cancel</button>
+      <button class="btn-primary" onclick="saveEdit()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Settings Modal -->
+<div class="modal-overlay" id="settings-modal">
+  <div class="modal">
+    <h2>Settings</h2>
+    <div class="settings-section">
+      <h3>GitHub Sync</h3>
+      <div class="modal-field">
+        <label>GitHub Token</label>
+        <div class="token-input-row">
+          <input type="password" id="settings-token" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" />
+          <button class="btn-save-token" onclick="saveTokenFromSettings()">Save</button>
+        </div>
+      </div>
+      <div id="gist-id-display" class="gist-id-display" style="display:none"></div>
+    </div>
+    <div class="settings-section">
+      <h3>Data</h3>
+      <button class="btn-cancel" style="width:100%;margin-bottom:8px" onclick="exportData()">Export JSON</button>
+      <button class="btn-cancel" style="width:100%;color:var(--red);border-color:rgba(255,82,82,0.3)" onclick="clearAll()">Clear all tasks</button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-primary" onclick="closeModal('settings-modal')">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script src="app.js"></script>
+</body>
+</html>

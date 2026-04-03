@@ -1,0 +1,71 @@
+; ══════════════════════════════════════════════════════
+;  KWGT Formula for Remindly Android Widget
+;  Paste these formulas into KWGT text layers
+; ══════════════════════════════════════════════════════
+
+; ── SETUP IN KWGT ──────────────────────────────────────
+; 1. Install KWGT from Play Store (free)
+; 2. Create a new widget
+; 3. Add a "Stack" layer for each task row
+; 4. Use the formulas below in text layers
+
+; ── Global Data Source ─────────────────────────────────
+; In KWGT: Globals → Add Global → Type: API
+;   Name : remindly
+;   URL  : https://api.github.com/gists/YOUR_GIST_ID
+;   Headers:
+;     Authorization: token YOUR_GITHUB_TOKEN
+;     Accept: application/vnd.github.v3+json
+;   Refresh: Every 30 minutes
+
+; ── Extract raw JSON from Gist API response ────────────
+; In a hidden text layer (opacity 0), put this to decode:
+$si(remindly, files/remindly.json/content)$
+
+; ── Title layer formula ────────────────────────────────
+remindly
+
+; ── Task 1 text (first undone task) ───────────────────
+; KWGT doesn't parse JSON arrays natively, so we use
+; regex-style text extraction from the raw content:
+$rf(si(remindly, files/remindly.json/content), "text":"([^"]+)","[^"]*":"[^"]*","[^"]*":[^,]*,"done":false, 1)$
+
+; ── Task 2 text ────────────────────────────────────────
+$rf(si(remindly, files/remindly.json/content), "text":"([^"]+)","[^"]*":"[^"]*","[^"]*":[^,]*,"done":false, 1, 2)$
+
+; ── Task 3 text ────────────────────────────────────────
+$rf(si(remindly, files/remindly.json/content), "text":"([^"]+)","[^"]*":"[^"]*","[^"]*":[^,]*,"done":false, 1, 3)$
+
+; ── Task count open ───────────────────────────────────
+; Count "done":false occurrences
+$tc(si(remindly, files/remindly.json/content), "done":false)$ open
+
+; ── Last refresh time ─────────────────────────────────
+$df(ai(update), "HH:mm")$
+
+; ══════════════════════════════════════════════════════
+;  KWGT WIDGET LAYOUT GUIDE
+; ══════════════════════════════════════════════════════
+;
+;  Suggested layout for a 2x3 widget:
+;
+;  ┌─────────────────────────────┐
+;  │ remindly          3 open   │  ← Title row
+;  ├─────────────────────────────┤
+;  │ ● Buy groceries            │  ← Task 1
+;  │ ● Call dentist             │  ← Task 2
+;  │ ● Review report            │  ← Task 3
+;  ├─────────────────────────────┤
+;  │ updated 14:32              │  ← Footer
+;  └─────────────────────────────┘
+;
+;  Colors recommended:
+;    Background : #0a0a0a with 85% opacity
+;    Title      : #c8f55a (accent green)
+;    Tasks      : #f0f0f0
+;    Footer     : #666666
+;    Font       : Courier New or DM Mono (if installed)
+;
+;  Tap action on widget:
+;    Open URL → https://YOUR-USERNAME.github.io/remindly/
+; ══════════════════════════════════════════════════════
