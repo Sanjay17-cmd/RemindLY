@@ -41,7 +41,7 @@ git init
 git add .
 git commit -m "initial commit"
 git branch -M main
-git remote add origin https://github.com/Sanjay17-cmd/RemindLY.git
+git remote add origin https://github.com/YOUR_USERNAME/remindly.git
 git push -u origin main
 ```
 
@@ -49,7 +49,7 @@ git push -u origin main
 1. Go to your repo → **Settings** → **Pages**
 2. Source: **GitHub Actions**
 3. Wait ~1 minute → your app is live at:
-   `https://Sanjay17-cmd.github.io/RemindLY/`
+   `https://YOUR_USERNAME.github.io/remindly/`
 
 ### Step 4 — Create GitHub Token (3 min)
 1. Go to https://github.com/settings/tokens/new
