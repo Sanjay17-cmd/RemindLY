@@ -2,7 +2,7 @@
   "name": "Remindly",
   "short_name": "Remindly",
   "description": "Minimal cross-device reminder & to-do manager",
-  "start_url": "/",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#0a0a0a",
   "theme_color": "#0a0a0a",
@@ -27,7 +27,7 @@
       "name": "Add Task",
       "short_name": "Add",
       "description": "Quickly add a new task",
-      "url": "/?add=1",
+      "url": "./?add=1",
       "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
     }
   ]
